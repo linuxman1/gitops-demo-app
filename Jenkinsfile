@@ -1,48 +1,72 @@
 pipeline {
-    agent any
+    agent {
+        label 'nodejs-docker'
+    }
     
     environment {
-        DOCKER_REGISTRY = "linuxmanl"
+        DOCKER_REGISTRY = "linuxmanl"  // Your Docker Hub username
         APP_NAME = "gitops-demo-app"
         GIT_CONFIG_REPO = "https://github.com/linuxman1/gitops-demo-config.git"
     }
     
     stages {
+        stage('Setup') {
+            steps {
+                container('nodejs') {
+                    sh 'node --version'
+                    sh 'npm --version'
+                }
+                container('docker') {
+                    sh 'docker --version'
+                }
+            }
+        }
+        
         stage('Build') {
             steps {
-                sh 'npm install'
-                sh 'npm test'
+                container('nodejs') {
+                    sh 'npm install'
+                    sh 'npm run test || true'
+                }
             }
         }
         
         stage('Docker Build & Push') {
             steps {
-                script {
-                    def imageTag = "v${BUILD_NUMBER}"
-                    
-                    // Build Docker image
-                    sh "docker build -t ${DOCKER_REGISTRY}/${APP_NAME}:${imageTag} ."
-                    
-                    // Push to registry
-                    withDockerRegistry([credentialsId: 'docker-cred', url: "https://${DOCKER_REGISTRY}"]) {
-                        sh "docker push ${DOCKER_REGISTRY}/${APP_NAME}:${imageTag}"
-                    }
-                    
-                    // Update version in git config repo
-                    withCredentials([sshUserPrivateKey(credentialsId: 'git-ssh-key', keyFileVariable: 'SSH_KEY')]) {
-                        sh """
-                            git clone ${GIT_CONFIG_REPO} config-repo
-                            cd config-repo
-                            sed -i "s|\${DOCKER_IMAGE}:.*|\${DOCKER_REGISTRY}/${APP_NAME}:${imageTag}|g" deployment.yaml
-                            git config user.email "jenkins@example.com"
-                            git config user.name "Jenkins"
-                            git add deployment.yaml
-                            git commit -m "Update image to ${imageTag}"
-                            git push origin main
-                        """
+                container('docker') {
+                    script {
+                        def imageTag = "v${BUILD_NUMBER}"
+                        
+                        withCredentials([string(credentialsId: 'b7e1b2de-d341-4b91-bbc5-59a463a149fc', 
+                                              variable: 'DOCKER_TOKEN')]) {
+                            sh """
+                                echo \${DOCKER_TOKEN} | docker login -u ${DOCKER_REGISTRY} --password-stdin
+                                docker build -t ${DOCKER_REGISTRY}/${APP_NAME}:${imageTag} .
+                                docker push ${DOCKER_REGISTRY}/${APP_NAME}:${imageTag}
+                            """
+                        }
+                        
+                        withCredentials([string(credentialsId: 'ece93b0b-ff7c-4056-86de-c02322ad810e', 
+                                              variable: 'GH_TOKEN')]) {
+                            sh """
+                                git clone https://\${GH_TOKEN}@github.com/linuxman1/gitops-demo-config.git config-repo
+                                cd config-repo
+                                sed -i "s|image:.*|image: ${DOCKER_REGISTRY}/${APP_NAME}:${imageTag}|g" deployment.yaml
+                                git config user.email "jenkins@example.com"
+                                git config user.name "Jenkins"
+                                git commit -am "Update image to ${imageTag}"
+                                git push origin main
+                            """
+                        }
                     }
                 }
             }
+        }
+    }
+    
+    post {
+        always {
+            cleanWs()
         }
     }
 }

@@ -1,31 +1,13 @@
 pipeline {
     agent {
         kubernetes {
-            yaml '''
-apiVersion: v1
-kind: Pod
-metadata:
-  labels:
-    app: gitops-demo
-spec:
-  containers:
-  - name: nodejs
-    image: node:18.17.1
-    command:
-    - cat
-    tty: true
-  - name: docker
-    image: docker:24.0-dind
-    securityContext:
-      privileged: true
-    tty: true
-    volumeMounts:
-      - name: docker-socket
-        mountPath: /var/run/docker.sock
-  volumes:
-    - name: docker-socket
-      emptyDir: {}
-'''
+            cloud 'kubernetes'
+            defaultContainer 'nodejs'
+            yamlFile 'jenkins-pod.yaml'
+            kubeconfig [
+                credentialsId: '349399d1-e484-44e7-9ae8-525b6c9a7ee0',
+                variable: 'KUBECONFIG'
+            ]
         }
     }
     

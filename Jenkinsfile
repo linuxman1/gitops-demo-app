@@ -1,7 +1,37 @@
 pipeline {
     agent {
         kubernetes {
-            yamlFile '.jenkins/jenkins-pod.yaml'
+            yaml '''
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: gitops-demo
+spec:
+  serviceAccountName: jenkins
+  containers:
+    - name: nodejs
+      image: node:18.17.1
+      command:
+        - sleep
+      args:
+        - infinity
+      tty: true
+    - name: docker
+      image: docker:24.0-dind
+      securityContext:
+        privileged: true
+      tty: true
+      env:
+        - name: DOCKER_TLS_CERTDIR
+          value: ""
+      volumeMounts:
+        - name: dind-storage
+          mountPath: /var/lib/docker
+  volumes:
+    - name: dind-storage
+      emptyDir: {}
+'''
             defaultContainer 'nodejs'
         }
     }
@@ -10,6 +40,7 @@ pipeline {
         DOCKER_REGISTRY = "linuxmanl"
         APP_NAME = "gitops-demo-app"
         GIT_CONFIG_REPO = "https://github.com/linuxman1/gitops-demo-config.git"
+        DOCKER_HOST = 'tcp://localhost:2375'
     }
     
     stages {
@@ -20,7 +51,7 @@ pipeline {
                     sh 'npm --version'
                 }
                 container('docker') {
-                    sh 'docker --version'
+                    sh 'docker ps'
                 }
             }
         }

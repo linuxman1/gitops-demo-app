@@ -12,9 +12,7 @@ spec:
   - name: nodejs
     image: node:18.17.1
     command:
-    - sleep
-    args:
-    - 99d
+    - cat
     tty: true
   - name: docker
     image: docker:24.0-dind
@@ -28,7 +26,6 @@ spec:
     - name: docker-socket
       emptyDir: {}
 '''
-            defaultContainer 'nodejs'
         }
     }
     

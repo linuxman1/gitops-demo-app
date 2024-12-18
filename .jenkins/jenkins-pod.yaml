@@ -4,20 +4,37 @@ metadata:
   labels:
     app: gitops-demo
 spec:
+  initContainers:
+  - name: init-docker
+    image: alpine
+    command: ['sh', '-c', 'apk add --no-cache netcat-openbsd']
   containers:
-    - name: nodejs
-      image: node:18.17.1
-      command:
-        - cat
-      tty: true
-    - name: docker
-      image: docker:24.0-dind
-      securityContext:
-        privileged: true
-      tty: true
-      volumeMounts:
-        - name: docker-socket
-          mountPath: /var/run/docker.sock
+  - name: nodejs
+    image: node:18.17.1
+    command:
+    - sleep
+    args:
+    - infinity
+  - name: docker
+    image: docker:24.0-dind
+    securityContext:
+      privileged: true
+    ports:
+      - containerPort: 2375
+        protocol: TCP
+    env:
+      - name: DOCKER_TLS_CERTDIR
+        value: ""
+      - name: DOCKER_HOST
+        value: tcp://localhost:2375
+    args:
+      - --host=tcp://0.0.0.0:2375
+      - --insecure-registry=10.0.0.0/8
+      - --insecure-registry=192.168.0.0/16
+      - --insecure-registry=172.16.0.0/12
+      - --tls=false
   volumes:
-    - name: docker-socket
-      emptyDir: {}
+  - name: workspace-volume
+    emptyDir: {}
+  - name: docker-graph-storage
+    emptyDir: {}

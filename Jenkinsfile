@@ -8,29 +8,36 @@ metadata:
   labels:
     app: gitops-demo
 spec:
-  serviceAccountName: jenkins
   containers:
-    - name: nodejs
-      image: node:18.17.1
-      command:
-        - sleep
-      args:
-        - infinity
-      tty: true
-    - name: docker
-      image: docker:24.0-dind
-      securityContext:
-        privileged: true
-      tty: true
-      env:
-        - name: DOCKER_TLS_CERTDIR
-          value: ""
-      volumeMounts:
-        - name: dind-storage
-          mountPath: /var/lib/docker
+  - name: nodejs
+    image: node:18.17.1
+    command:
+    - sleep
+    args:
+    - infinity
+  - name: docker
+    image: docker:24.0-dind
+    securityContext:
+      privileged: true
+    ports:
+      - containerPort: 2375
+        protocol: TCP
+    env:
+      - name: DOCKER_TLS_CERTDIR
+        value: ""
+      - name: DOCKER_HOST
+        value: tcp://localhost:2375
+    args:
+      - --host=tcp://0.0.0.0:2375
+      - --insecure-registry=10.0.0.0/8
+      - --insecure-registry=192.168.0.0/16
+      - --insecure-registry=172.16.0.0/12
+      - --tls=false
   volumes:
-    - name: dind-storage
-      emptyDir: {}
+  - name: workspace-volume
+    emptyDir: {}
+  - name: docker-graph-storage
+    emptyDir: {}
 '''
             defaultContainer 'nodejs'
         }
@@ -40,7 +47,7 @@ spec:
         DOCKER_REGISTRY = "linuxmanl"
         APP_NAME = "gitops-demo-app"
         GIT_CONFIG_REPO = "https://github.com/linuxman1/gitops-demo-config.git"
-        DOCKER_HOST = 'tcp://localhost:2375'
+        DOCKER_HOST = "tcp://localhost:2375"
     }
     
     stages {
@@ -51,7 +58,14 @@ spec:
                     sh 'npm --version'
                 }
                 container('docker') {
-                    sh 'docker ps'
+                    // Wait for Docker to be ready
+                    sh '''
+                    while ! nc -z localhost 2375; do 
+                      sleep 1
+                      echo "Waiting for Docker daemon..."
+                    done
+                    docker info
+                    '''
                 }
             }
         }

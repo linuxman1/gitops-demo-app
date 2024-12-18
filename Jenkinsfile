@@ -2,12 +2,8 @@ pipeline {
     agent {
         kubernetes {
             cloud 'kubernetes'
-            defaultContainer 'nodejs'
-            yamlFile 'jenkins-pod.yaml'
-            kubeconfig [
-                credentialsId: '349399d1-e484-44e7-9ae8-525b6c9a7ee0',
-                variable: 'KUBECONFIG'
-            ]
+            yamlFile '.jenkins/jenkins-pod.yaml'
+            credentials '349399d1-e484-44e7-9ae8-525b6c9a7ee0'
         }
     }
     

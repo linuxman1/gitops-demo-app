@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: gitops-demo
+spec:
+  containers:
+    - name: nodejs
+      image: node:18.17.1
+      command:
+        - cat
+      tty: true
+    - name: docker
+      image: docker:24.0-dind
+      securityContext:
+        privileged: true
+      tty: true
+      volumeMounts:
+        - name: docker-socket
+          mountPath: /var/run/docker.sock
+  volumes:
+    - name: docker-socket
+      emptyDir: {}

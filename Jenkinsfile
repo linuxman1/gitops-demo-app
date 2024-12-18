@@ -1,10 +1,39 @@
 pipeline {
     agent {
-        label 'nodejs-docker'
+        kubernetes {
+            yaml '''
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: gitops-demo
+spec:
+  containers:
+  - name: nodejs
+    image: node:18.17.1
+    command:
+    - sleep
+    args:
+    - 99d
+    tty: true
+  - name: docker
+    image: docker:24.0-dind
+    securityContext:
+      privileged: true
+    tty: true
+    volumeMounts:
+      - name: docker-socket
+        mountPath: /var/run/docker.sock
+  volumes:
+    - name: docker-socket
+      emptyDir: {}
+'''
+            defaultContainer 'nodejs'
+        }
     }
     
     environment {
-        DOCKER_REGISTRY = "linuxmanl"  // Your Docker Hub username
+        DOCKER_REGISTRY = "linuxmanl"
         APP_NAME = "gitops-demo-app"
         GIT_CONFIG_REPO = "https://github.com/linuxman1/gitops-demo-config.git"
     }

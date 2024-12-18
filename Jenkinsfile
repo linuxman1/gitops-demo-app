@@ -1,8 +1,8 @@
 pipeline {
     agent {
         kubernetes {
-            cloud 'kubernetes'
             yamlFile '.jenkins/jenkins-pod.yaml'
+            defaultContainer 'nodejs'
         }
     }
     
@@ -10,7 +10,6 @@ pipeline {
         DOCKER_REGISTRY = "linuxmanl"
         APP_NAME = "gitops-demo-app"
         GIT_CONFIG_REPO = "https://github.com/linuxman1/gitops-demo-config.git"
-        KUBECONFIG = credentials('349399d1-e484-44e7-9ae8-525b6c9a7ee0')
     }
     
     stages {

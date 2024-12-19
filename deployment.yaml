@@ -15,7 +15,8 @@ spec:
     spec:
       containers:
       - name: gitops-demo-app
-        image: linuxmanl/gitops-demo-app:v24
+        image: linuxmanl/gitops-demo-app:latest
+        imagePullPolicy: Always  # Important for latest tag
         ports:
         - containerPort: 3000
         resources:

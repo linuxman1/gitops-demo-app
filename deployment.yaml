@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: gitops-demo-app
-        image: linuxmanl/gitops-demo-app:latest
+        image: linuxmanl/gitops-demo-app:v24
         ports:
         - containerPort: 3000
         resources:

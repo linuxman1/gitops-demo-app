@@ -4,7 +4,7 @@ const port = process.env.PORT || 3000;
 
 app.get('/', (req, res) => {
   res.json({
-    message: 'Welcome to GitOps Demo App! v2',
+    message: 'Welcome to GitOps Demo App! v3',
     timestamp: new Date().toISOString()
   });
 });

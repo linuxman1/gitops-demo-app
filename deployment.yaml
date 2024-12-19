@@ -15,12 +15,9 @@ spec:
     spec:
       containers:
       - name: gitops-demo-app
-        image: ${DOCKER_REGISTRY}/${APP_NAME}:latest
+        image: linuxmanl/gitops-demo-app:latest
         ports:
         - containerPort: 3000
-        env:
-        - name: APP_VERSION
-          value: ${IMAGE_TAG}
         resources:
           requests:
             cpu: "100m"
@@ -28,9 +25,54 @@ spec:
           limits:
             cpu: "200m"
             memory: "256Mi"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 3000
-          initialDelaySeconds: 5
-          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitops-demo-app
+  namespace: demo
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 3000
+  selector:
+    app: gitops-demo-app
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gitops-demo-app-tls
+  namespace: demo
+spec:
+  secretName: gitops-demo-app-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  dnsNames:
+    - demo.hostingremote.com
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gitops-demo-app
+  namespace: demo
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    kubernetes.io/ingress.class: traefik
+spec:
+  tls:
+    - hosts:
+        - demo.hostingremote.com
+      secretName: gitops-demo-app-tls
+  rules:
+    - host: demo.hostingremote.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gitops-demo-app
+                port:
+                  number: 80
